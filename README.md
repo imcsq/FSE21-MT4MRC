@@ -125,3 +125,22 @@ figure
     RQ2_full.png: the results of RQ2 on all the four objective models. 
     RQ4_full.csv: the results of RQ4 on all the four objective models. 
 ```
+
+---
+
+If you find our paper useful, please kindly cite it as:
+```
+@inproceedings{fse21-MT4MRC,
+  author = {Chen, Songqiang and Jin, Shuo and Xie, Xiaoyuan},
+  editor = {Spinellis, Diomidis and Gousios, Georgios and Chechik, Marsha and Penta, Massimiliano Di},
+  title = {Validation on Machine Reading Comprehension Software without Annotated
+                 Labels: A Property-Based Method},
+  booktitle = {29th {ACM} Joint European Software Engineering Conference
+                 and Symposium on the Foundations of Software Engineering, {ESEC/FSE} 2021, Athens,
+                 Greece, August 23-28, 2021},
+  pages = {590--602},
+  publisher = {{ACM}},
+  year = {2021},
+  doi = {10.1145/3468264.3468569}
+}
+```
