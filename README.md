@@ -31,9 +31,8 @@ inputsets = []
 for line in lines:
     cases = handler.generate(data=line, mr="1_1")
     if cases is not None: # judge the eligibility of the sample in 'line'
-        for case in cases:
-            inputsets.append( (case[0], case[1]) )
-            # case[0] and case[1] are the source input and follow-up input, respectively
+        inputsets.append( (cases[0], cases[1]) )
+        # cases[0] and cases[1] are the source input and follow-up input, respectively
 with open("source.jsonl", 'w', encoding='utf-8') as f_source, \
      open("follow-up.jsonl", 'w', encoding='utf-8') as f_followup:
     for case in inputsets: # dump generated inputs into jsonl files

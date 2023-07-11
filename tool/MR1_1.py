@@ -1,41 +1,35 @@
-import json
 import numpy
 import spacy
-import nltk
+import random
 from nltk.corpus import wordnet
+from nltk.tokenize.treebank import TreebankWordDetokenizer
 nlp = spacy.load('en_core_web_sm')
 
+
 def tree_to_list(node, tree):
-        if node.n_lefts + node.n_rights > 0:
-            tree.insert(0, node.orth_)
-            return [tree_to_list(child, tree) for child in node.children]
-        else:
-            tree.insert(0, node.orth_)
+    if node.n_lefts + node.n_rights > 0:
+        tree.insert(0, node.orth_)
+        return [tree_to_list(child, tree) for child in node.children]
+    else:
+        tree.insert(0, node.orth_)
+
 
 class MR1_1(object):
 
-    def generate(self, data):
-        if "label" not in data:
-            data = data[:len(data) - 2] + ", \"label\": true}"
-        output = []
-        line = data
+    def generate(self, question, article):
         tree1 = []
-        this_line = json.loads(line)
-        question = this_line["question"]
-        doc = nlp(this_line["question"])
+        doc = nlp(question)
         tokens = [token for token in doc]
-        real_tokens = [token.string.strip() for token in tokens]
-        if str(tokens[0].string.strip()) not in ["is", "are", "was", "were"]:
-            return
-        if str(tokens[1].string.strip()) == "there":
-            return
-        if str(tokens[1].string.strip()) in ["any", "anyone", "anything"]:
-            return
-        sent_dep = [token.dep_ for token in doc]
+        real_tokens = [token.text for token in tokens]
+        if str(tokens[0].lemma_) != 'be':
+            return question, article, False
+        if str(tokens[1].text) == "there":
+            return question, article, False
+        if str(tokens[1].text) in ["any", "anyone", "anything"]:
+            return question, article, False
         word_index = []
         for word in doc:
             child_dep = [child.dep_ for child in list(word.children)]
-            child_tag = [child.tag_ for child in list(word.children)]
             if word.dep_ == "ROOT":
                 if "nsubj" in child_dep:
                     place_tree1 = child_dep.index("nsubj")
@@ -51,45 +45,37 @@ class MR1_1(object):
                 for leaf in tree1:
                     word_index.append(real_tokens.index(leaf))
         if word_index == []:
-            return
+            return question, article, False
         legal_pos = numpy.max(word_index)
         word = []
         place = []
         num = 0
         for token in tokens[legal_pos + 1:]:
             if token.tag_ in ["JJ", "JJR", "JJS"]:
-                word.append(token.string.strip())
+                word.append(token.text)
                 place.append(legal_pos + 1 + num)
             num += 1
-        rd = -1
-        for one in word:
-            rd += 1
+        all_available_follow = []
+        num = -1
+        for this_word in word:
+            num += 1
             antonyms = []
-            for syn in wordnet.synsets(one, "a"):
+            for syn in wordnet.synsets(this_word, "a"):
                 for l in syn.lemmas():
                     if l.antonyms():
                         antonyms.append(l.antonyms()[0].name())
-            if (len(antonyms) == 0):
+            if not len(antonyms):
                 continue
             else:
-                if place[rd] == (len(tokens) - 1):
-                    for ant in antonyms:
-                        question_out = question
-                        question_out = question_out.replace(" " + one, " " + ant, 1)
-                        out_line2 = line
-                        out_line2 = out_line2.replace(question, question_out, 1)
-                        if line != out_line2:
-                            if [line.strip(), out_line2.strip()] not in output:
-                                output.append([line.strip(), out_line2.strip()])
-                else:
-                    for ant in antonyms:
-                        question_out = question
-                        question_out = question_out.replace(" " + one + " ", " " + ant + " ", 1)
-                        out_line2 = line
-                        out_line2 = out_line2.replace(question, question_out, 1)
-                        if line != out_line2:
-                            if [line.strip(), out_line2.strip()] not in output:
-                                output.append([line.strip(), out_line2.strip()])
-        if output == []:
-            return
-        return output
+                for this_antonym in antonyms:
+                    replaced_question = real_tokens[:]
+                    replaced_question[place[num]] = this_antonym
+                    all_available_follow.append(TreebankWordDetokenizer().detokenize(replaced_question))
+
+        if all_available_follow == []:
+            return question, article, False
+        random.shuffle(all_available_follow)
+        if all_available_follow[0] == real_tokens:
+            return all_available_follow[0], article, False
+        else:
+            return all_available_follow[0], article, True
